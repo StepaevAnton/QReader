@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingStart="10dp"
+    android:paddingLeft="10dp"
+    android:paddingEnd="10dp"
+    android:paddingRight="10dp"
+    android:layout_marginBottom="10dp"
+    tools:context="com.avstepaevicloud.qrreader.EventDetailsActivity">
+    <TextView
+        android:id="@+id/event_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="25sp"
+        android:gravity="start"
+        android:textColor="#202020"/>
+
+    <TextView
+        android:id="@+id/event_dt"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="15sp"
+        android:gravity="start"
+        android:layout_below="@id/event_label"/>
+
+    <Button
+        android:id="@+id/scan_code_button"
+        android:layout_width="200dp"
+        android:layout_height="40dp"
+        android:text="@string/scan_code"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"/>
+
+</RelativeLayout>
