@@ -9,4 +9,5 @@
     <string name="qr_code_has_invalid_format">QR код имеет неверный формат!</string>>
     <string name="error">Ошибка</string>>
     <string name="ticket_already_was_scanned">Билет уже был отсканирован%1$s!</string>>
+    <string name="wrong_event_id_on_ticket">"Билет не соответствует выбранному мероприятию!"</string>>
 </resources>

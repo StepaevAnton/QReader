@@ -97,9 +97,7 @@ class StorageManager private constructor(val context: Context) {
         if (scannedTicket != null)
         {
             val msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_already_was_scanned, " " + SimpleDateFormat.getInstance().format(scannedTicket.scanDt))
-            //val msg = Resources.getSystem().getString()
             throw TicketIdCheckException(msg)
-
         }
 
         val ticketInfo = TicketInfo(ticketId, Calendar.getInstance().time)

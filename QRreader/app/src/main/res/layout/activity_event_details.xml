@@ -8,7 +8,8 @@
     android:paddingLeft="10dp"
     android:paddingEnd="10dp"
     android:paddingRight="10dp"
-    android:layout_marginBottom="10dp"
+    android:paddingBottom="10dp"
+    android:background="#e5e5e5"
     tools:context="com.avstepaevicloud.qrreader.EventDetailsActivity">
     <TextView
         android:id="@+id/event_label"
@@ -26,12 +27,25 @@
         android:gravity="start"
         android:layout_below="@id/event_label"/>
 
+    <TextView
+        android:id="@+id/ticket_details"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        android:gravity="start"
+        android:layout_below="@id/event_dt"
+        android:textColor="#303030"
+        android:layout_marginTop="40dp"/>
+
     <Button
         android:id="@+id/scan_code_button"
-        android:layout_width="200dp"
-        android:layout_height="40dp"
+        android:layout_width="230dp"
+        android:layout_height="70dp"
         android:text="@string/scan_code"
+        android:textSize="20sp"
+        android:textColor="@android:color/black"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true"/>
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/rounded_corners_button"/>
 
 </RelativeLayout>

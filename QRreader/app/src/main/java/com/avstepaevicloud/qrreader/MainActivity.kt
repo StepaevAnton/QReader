@@ -161,39 +161,44 @@ class MainActivity : NetworkCkeckingActivity() {
         val mutableList = mutableListOf<EventData>()
 
         for (i in 0 until eventsJson.length()) {
-            val obj = eventsJson.getJSONObject(i)
-            if (!obj.has("id") || !obj.has("title") || !obj.has("code") or (obj.has("hidden") && obj.getInt("hidden") != 0))
-                continue
+            try {
+                val obj = eventsJson.getJSONObject(i)
+                if (!obj.has("id") || !obj.has("title") || !obj.has("code") or (obj.has("hidden") && obj.getInt("hidden") != 0))
+                    continue
 
-            val dtStrings = mutableListOf<String>()
-            if (obj.has("date"))
-                dtStrings.add(obj.getString("date"))
-            if (obj.has("time"))
-                dtStrings.add(obj.getString("time"))
+                val dtStrings = mutableListOf<String>()
+                if (obj.has("date"))
+                    dtStrings.add(obj.getString("date"))
+                if (obj.has("time"))
+                    dtStrings.add(obj.getString("time"))
 
-            val eventTypes = mutableMapOf<Int, EventType>()
-            if (obj.has("types")) {
-                val typesJson = obj.getJSONArray("types")
-                for (j in 0 until typesJson.length()) {
-                    val eventTypeJson = typesJson.getJSONObject(j)
-                    if (!eventTypeJson.has("id"))
-                        continue
+                val eventTypes = mutableMapOf<Int, TicketType>()
+                if (obj.has("types")) {
+                    val typesJson = obj.getJSONArray("types")
+                    for (j in 0 until typesJson.length()) {
+                        val eventTypeJson = typesJson.getJSONObject(j)
+                        if (!eventTypeJson.has("id"))
+                            continue
 
-                    val id = eventTypeJson.getInt("id")
-                    var eventTypeCaption = String.Empty()
-                    if (eventTypeJson.has("title")) {
-                        eventTypeCaption = eventTypeJson.getString("title")
-                        if (eventTypeJson.has("info")) {
-                            val eventInfo = eventTypeJson.getString("info")
-                            eventTypeCaption += " ($eventInfo)"
+                        val id = eventTypeJson.getInt("id")
+                        var eventTypeCaption = String.Empty()
+                        if (eventTypeJson.has("title")) {
+                            eventTypeCaption = eventTypeJson.getString("title")
+                            if (eventTypeJson.has("info")) {
+                                val eventInfo = eventTypeJson.getString("info")
+                                eventTypeCaption += " ($eventInfo)"
+                            }
                         }
+
+                        eventTypes.put(id, TicketType(id, eventTypeCaption))
                     }
-
-                    eventTypes.put(id, EventType(id, eventTypeCaption))
                 }
-            }
 
-            mutableList.add(EventData(obj.getLong("id"), obj.getString("title"), dtStrings.joinToString(" "), obj.getString("code"), eventTypes))
+                mutableList.add(EventData(obj.getLong("id"), obj.getString("title"), dtStrings.joinToString(" "), obj.getString("code"), eventTypes))
+            }
+            catch (e: Exception){
+                // ignored
+            }
         }
 
         events = mutableList.toTypedArray()
