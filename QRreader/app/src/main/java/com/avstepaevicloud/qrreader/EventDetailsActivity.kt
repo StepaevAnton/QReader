@@ -56,7 +56,7 @@ class EventDetailsActivity : AppCompatActivity() {
             ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
 
         // DEBUG
-        processScanResult("123")
+        //processScanResult("123")
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
@@ -92,14 +92,12 @@ class EventDetailsActivity : AppCompatActivity() {
      */
     private fun processScanResult(scanResultAsString: String) {
         try {
-            val scanResult = ScanResult(123, 1, 0, 35, 4)
-            //val scanResult = ScanResultParser.unsafeParse(barcode!!, event!!.code)
+            val scanResult = ScanResultParser.unsafeParse(scanResultAsString, event!!.code, this)
 
-            // TODO раскомментировать
-//            if (scanResult.eventId != event!!.id)
-//                throw TicketIdCheckException(getString(R.string.wrong_event_id_on_ticket))
+           if (scanResult.eventId != event!!.id)
+                throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
 
-            //StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, 789)//scanResult.eventId)
+            StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, scanResult.eventId)//scanResult.eventId)
 
             val ticketType = getTicketTypyAsString(scanResult.ticketType)
 
@@ -152,24 +150,3 @@ class EventDetailsActivity : AppCompatActivity() {
         }
     }
 }
-//        if (barcode == null || barcode.equals("")) {
-//            Toast.makeText(this@EventDetailsActivity, "Bar Code Not Found", Toast.LENGTH_LONG).show()
-//            return
-//        }
-//
-//        //bar_code_id_txt?.text = barcode
-//
-//        var base64string = barcode!!.replace(PREFIX, StringEmpty)
-//
-//        var bytes = Base64.decode(base64string, 8)
-//
-//        var data = bytes.slice(0..10).toByteArray()
-//        var sign = bytes.slice(11..18).toByteArray()
-//
-//        var digestInput = data + "123456".toByteArray(Charsets.UTF_8)
-//
-//        var md5Digest = MessageDigest.getInstance("MD5")
-//        md5Digest.reset()
-//        md5Digest.update(digestInput)
-//
-//        val md5Hash = md5Digest.digest()

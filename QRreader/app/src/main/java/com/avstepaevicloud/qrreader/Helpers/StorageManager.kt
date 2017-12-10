@@ -1,17 +1,10 @@
 package com.avstepaevicloud.qrreader.Helpers
 
-import android.app.Activity
 import android.content.Context
-import android.content.res.Resources
 import android.util.Log
 import kotlinx.coroutines.experimental.async
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
-import java.io.Serializable
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.*
 
 /**
@@ -107,26 +100,6 @@ class StorageManager private constructor(val context: Context) {
         async {
             writeChangesToDisc(eventId, ticketInfo)
         }
-//        val hashSet = hashSetOf<TicketInfo>(TicketInfo(353466, Calendar.getInstance().time))
-//        val arr = JSONArray(hashSet.map {
-//            val jsonObj = JSONObject()
-//            jsonObj.put("id", it.id)
-//            jsonObj.put("dt", SimpleDateFormat.getInstance().format(it.scanDt))
-//
-//        })
-//
-//        val arrToStr = arr.toString()
-//        val arrBack = JSONArray(arrToStr)
-//        var ticketInfoSet = mutableSetOf<TicketInfo>()
-//        for (i in 0 until arrBack.length())
-//        {
-//            var obj = arrBack.getJSONObject(i)
-//            val id = obj.getLong("id")
-//            val dtString = obj.getString("dt")
-//            var parsedDt = SimpleDateFormat.getInstance().parse(dtString)//DateFormat.getInstance().parse(dtString)
-//
-//            ticketInfoSet.add(TicketInfo(id, parsedDt))
-//        }
     }
 
     /**
@@ -140,7 +113,6 @@ class StorageManager private constructor(val context: Context) {
         if (!file.exists())
         {
             file = File(dir, eventId.toString() + filesExtension)
-            //file.mkdirs()
         }
 
         file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + SimpleDateFormat.getInstance().format(ticketInfo.scanDt), Charsets.UTF_8)

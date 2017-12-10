@@ -8,10 +8,6 @@ import java.net.URL
 class HttpClient {
     companion object {
 
-        /**
-         * TODO переделать на синглтон
-         */
-        //private val GET_REQUEST_METHOD = "GET"
         private val GET_EVENTS_LIST_URL = "http://tkt.ac/api/?method=list&pin="
 
         // Получить список событий

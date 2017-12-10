@@ -17,7 +17,9 @@
         android:layout_height="wrap_content"
         android:textSize="25sp"
         android:gravity="start"
-        android:textColor="#202020"/>
+        android:textColor="#202020"
+        android:maxLines="2"
+        android:ellipsize="end"/>
 
     <TextView
         android:id="@+id/event_dt"

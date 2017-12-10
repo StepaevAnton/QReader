@@ -20,7 +20,6 @@ import java.util.*
  */
 abstract class NetworkCkeckingActivity : AppCompatActivity() {
 
-    // TODO добавить файл Extensions и вынести туда
     fun String.Companion.Empty() = ""
 
     /**

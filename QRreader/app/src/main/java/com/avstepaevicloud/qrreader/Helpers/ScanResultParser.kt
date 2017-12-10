@@ -1,10 +1,12 @@
 package com.avstepaevicloud.qrreader.Helpers
 
+import android.content.Context
 import android.content.res.Resources
 import android.support.v7.app.AppCompatActivity
 import android.util.Base64
 import java.security.MessageDigest
 import java.nio.ByteBuffer
+import java.security.AccessControlContext
 
 /**
  * Парсер результата сканирования
@@ -21,7 +23,7 @@ class ScanResultParser {
         /**
          * Распарсить результат сканирования небезопасным образом
          */
-        fun unsafeParse(base64StringWithIpPrefix: String, code: String): ScanResult {
+        fun unsafeParse(base64StringWithIpPrefix: String, code: String, context: Context): ScanResult {
             val base64String = base64StringWithIpPrefix.replace(PREFIX, "")
             val bytes = Base64.decode(base64String, 8)
 
@@ -36,7 +38,7 @@ class ScanResultParser {
 
             val md5Hash = md5Digest.digest().slice(0..7)
             if (!md5Hash.equals(sign))
-                throw ResultParsingException(Resources.getSystem().getString(com.avstepaevicloud.qrreader.R.string.digital_signature_is_not_valid))
+                throw ResultParsingException(context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.digital_signature_is_not_valid))
 
             val ticketId = ByteBuffer.wrap(data.slice(0..3).toByteArray()).getInt().toULong()
             val eventId = ByteBuffer.wrap(data.slice(4..7).toByteArray()).getInt().toULong()
