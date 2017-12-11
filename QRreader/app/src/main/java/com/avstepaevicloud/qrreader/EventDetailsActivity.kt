@@ -9,6 +9,9 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.support.v7.app.AlertDialog
 import com.avstepaevicloud.qrreader.Helpers.*
+import kotlinx.coroutines.experimental.async
+import org.json.JSONArray
+import org.json.JSONObject
 
 
 class EventDetailsActivity : AppCompatActivity() {
@@ -55,8 +58,35 @@ class EventDetailsActivity : AppCompatActivity() {
         if (savedInstanceState != null && savedInstanceState.containsKey(ticketInfoKey))
             ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
 
+        // TODO не запрашивать билеты при перевороте
+        async {
+            val ticketInfo = HttpClient.getTickets(event!!.id.toString())
+
+            var tmp = ticketInfo
+        }
+
         // DEBUG
+
+        val param1 = JSONObject()
+        param1.put("id", "61")
+        param1.put("time", "2017-11-25 23:59:59")
+
+        val params = JSONArray()
+        params.put(param1)
+
+        HttpClient.postTickets(applicationContext, "1", params, testFun())
+
+
+        //StorageManager.getInstance(applicationContext).checkAndAddTicketId(123, 456)
+        //StorageManager.getInstance(applicationContext).checkAndAddTicketId(789, 456)
+
         //processScanResult("123")
+    }
+
+    fun testFun() : (String?) -> Unit {
+        return {response -> run{
+            var tmp = response
+        }}
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {

@@ -6,6 +6,7 @@ import kotlinx.coroutines.experimental.async
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.HashSet
 
 /**
  * Created by StepaevAV on 19.11.17.
@@ -24,12 +25,15 @@ class StorageManager private constructor(val context: Context) {
     /**
      * Ссылка на директорию приложения
      */
-    private val dir : File = context.filesDir
+    private val dir: File = context.filesDir
 
-
+    /**
+     * Информация лежит на диске в виде .txt файлов, содержащих строковое представлени информации об отсканированных билетах (json и xml нецелесообразны, ввиду ресурсоемкости добавления информации)
+     * infosLimiter - разделить между инфо о билетах
+     * infoComponentLimiter - разделитель внутри инфо о билете
+     */
     private val infosLimiter = "|"
     private val infoComponentLimiter = "!"
-
     private var filesExtension = ".txt"
 
     /**
@@ -50,15 +54,13 @@ class StorageManager private constructor(val context: Context) {
 
         val files = dir.listFiles()
 
-        for (file in files)
-        {
+        for (file in files) {
             try {
                 val eventId = file.name.replace(filesExtension, "").toLong()
-                val text =   file.readText(Charsets.UTF_8)
+                val text = file.readText(Charsets.UTF_8)
                 val jsonTicketsInfos = text.split(infosLimiter)
                 val ticketsInfoSet = hashSetOf<TicketInfo>()
-                for (i in 0 until jsonTicketsInfos.count())
-                {
+                for (i in 0 until jsonTicketsInfos.count()) {
                     val jsonTicketInfo = jsonTicketsInfos[i]
                     val components = jsonTicketInfo.split(infoComponentLimiter)
                     val idComponent = components[0]
@@ -67,15 +69,62 @@ class StorageManager private constructor(val context: Context) {
 
                     val id = idComponent.toLong()
                     val dt = SimpleDateFormat.getInstance().parse(components[1])
-                    ticketsInfoSet.add(TicketInfo(id, dt))
+                    val state = TicketStateEnum.valueOf(components[2])
+
+                    ticketsInfoSet.add(TicketInfo(id, dt, state))
                 }
                 cache[eventId] = ticketsInfoSet
-            }
-            catch (e: Exception){
+            } catch (e: Exception) {
                 Log.getStackTraceString(e).toString()
                 continue
             }
         }
+    }
+
+    /**
+     * Смерджиться с инфой об отсканированных билетах с сервера
+     * TODO чересчур кучеряво
+     */
+    fun merge(eventId: Long, ticketInfos: Array<TicketInfo>) {
+        if (!cache.containsKey(eventId) || cache[eventId] == null)
+            cache[eventId] = HashSet<TicketInfo>()
+
+        val currentCache = cache[eventId]
+
+        // Идентификаторы билетов в кэше
+        val cachedTicketsIds = currentCache!!.map { it.id }
+        // Идентификаторы полученных билетов
+        val receivedTicketsIds = ticketInfos.map { it.id }
+        // Временная коллекция для итерирования
+        @Suppress("UNCHECKED_CAST")
+        val tmpCollection = currentCache.clone() as HashSet<TicketInfo>//hashSetOf(currentCache)
+
+        tmpCollection.addAll(ticketInfos)
+
+        val ticketsToPost = HashSet<TicketInfo>()
+
+        for (ticketInfo in tmpCollection) {
+            var cached = false
+            var received = false
+            if (cachedTicketsIds.contains(ticketInfo.id))
+                cached = true
+            if (receivedTicketsIds.contains(ticketInfo.id))
+                received = true
+
+            // Билет и в кэше и прилетел - все ок
+            if (cached && received)
+                continue
+            // Билет только прилетел - кладем в кэш
+            else if (received) {
+                currentCache.add(ticketInfo)
+                writeChangesToDiscAsync(eventId, ticketInfo)
+            }
+            // Билет только в кэше - постим на сервер
+            else if (cached)
+                ticketsToPost.add(ticketInfo)
+        }
+
+
     }
 
     /**
@@ -87,39 +136,55 @@ class StorageManager private constructor(val context: Context) {
 
         val currentCache = cache[eventId]
         val scannedTicket = currentCache!!.firstOrNull { it.id == ticketId }
-        if (scannedTicket != null)
-        {
-            val msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_already_was_scanned, " " + SimpleDateFormat.getInstance().format(scannedTicket.scanDt))
+        if (scannedTicket != null) {
+            var msg = ""
+            when (scannedTicket.state) {
+                TicketStateEnum.Scanned -> msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_already_was_scanned, " "
+                        + SimpleDateFormat.getInstance().format(scannedTicket.scanDt))
+                TicketStateEnum.Rejected -> msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_was_rejected)
+            //else -> throw NotImplementedError("scannedTicket.state")
+            }
+
             throw TicketIdCheckException(msg)
         }
 
-        val ticketInfo = TicketInfo(ticketId, Calendar.getInstance().time)
+        val ticketInfo = TicketInfo(ticketId, Calendar.getInstance().time, TicketStateEnum.Scanned)
         currentCache.add(ticketInfo)
-        cache[eventId] = currentCache
 
-        async {
-            writeChangesToDisc(eventId, ticketInfo)
-        }
+        writeChangesToDiscAsync(eventId, ticketInfo)
     }
 
     /**
      * Записать изменения на диск
      */
-    private fun writeChangesToDisc(eventId: Long, ticketInfo: TicketInfo){
-        if (!dir.exists())
-            dir.mkdirs()
+    private fun writeChangesToDiscAsync(eventId: Long, ticketInfo: TicketInfo) {
+        async {
+            if (!dir.exists())
+                dir.mkdirs()
 
-        var file = File(dir.absolutePath + "/" + eventId.toString() + filesExtension)
-        if (!file.exists())
-        {
-            file = File(dir, eventId.toString() + filesExtension)
+            var file = File(dir.absolutePath + "/" + eventId.toString() + filesExtension)
+            if (!file.exists())
+                file = File(dir, eventId.toString() + filesExtension)
+
+            file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + SimpleDateFormat.getInstance().format(ticketInfo.scanDt) + infoComponentLimiter + ticketInfo.state, Charsets.UTF_8)
         }
-
-        file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + SimpleDateFormat.getInstance().format(ticketInfo.scanDt), Charsets.UTF_8)
     }
 }
 
-data class TicketInfo(val id: Long, val scanDt: Date)
+/**
+ * Дата класс описания билета
+ */
+data class TicketInfo(val id: Long, val scanDt: Date, val state: TicketStateEnum)
+
+/**
+ * Состояние билета
+ */
+enum class TicketStateEnum {
+    // Отсканирован
+    Scanned,
+    // Отменен
+    Rejected
+}
 
 /**
  * Эксепшн проверки идентификатора билета

@@ -13,6 +13,9 @@ import kotlinx.coroutines.experimental.async
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.Serializable
+import java.net.CookieHandler
+import java.net.CookieManager
+import java.net.CookiePolicy
 import java.util.*
 
 /**
@@ -78,6 +81,7 @@ class MainActivity : NetworkCkeckingActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+
         eventsListView = findViewById(R.id.events_list_view)
         progressBar = findViewById(R.id.progress_bar)
         progressBar!!.visibility = View.INVISIBLE
@@ -133,10 +137,11 @@ class MainActivity : NetworkCkeckingActivity() {
     private fun pinCodeDialogOkClick(dialogView: View) {
 
         val pinCode = dialogView.findViewById<EditText>(R.id.pin_code).text.toString()
+        HttpClient.pinCode = pinCode
         progressBar!!.visibility = View.VISIBLE
 
         async {
-            val eventsList = HttpClient.getEventsList(pinCode)
+            val eventsList = HttpClient.getEventsList()
             val jsonObject = JSONObject(eventsList)
             val isAnswerCorrect = isAnswerCorrect(jsonObject)
             runOnUiThread {

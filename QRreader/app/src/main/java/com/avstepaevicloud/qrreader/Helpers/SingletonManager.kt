@@ -4,6 +4,9 @@ package com.avstepaevicloud.qrreader.Helpers
  * Created by StepaevAV on 19.11.17.
  */
 
+/**
+ * Шаблон для синглтонов
+ */
 open class SingletonHolder<out T, in A>(creator: (A) -> T) {
     private var creator: ((A) -> T)? = creator
     @Volatile private var instance: T? = null

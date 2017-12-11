@@ -10,4 +10,5 @@
     <string name="error">Ошибка</string>>
     <string name="ticket_already_was_scanned">Билет уже был отсканирован%1$s!</string>>
     <string name="wrong_event_id_on_ticket">"Билет не соответствует выбранному мероприятию!"</string>>
+    <string name="ticket_was_rejected">"Билет был отменён!"</string>>
 </resources>
