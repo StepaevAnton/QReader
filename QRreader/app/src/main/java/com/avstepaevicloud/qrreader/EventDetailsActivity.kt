@@ -1,5 +1,6 @@
 package com.avstepaevicloud.qrreader
 
+import android.annotation.SuppressLint
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
@@ -10,16 +11,20 @@ import android.media.ToneGenerator
 import android.support.v7.app.AlertDialog
 import com.avstepaevicloud.qrreader.Helpers.*
 import kotlinx.coroutines.experimental.async
-import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
 
 
 class EventDetailsActivity : AppCompatActivity() {
 
     // Константы
+    // Звуки
     private val errorTone: Int = ToneGenerator.TONE_CDMA_CALL_SIGNAL_ISDN_NORMAL
     private val okTone: Int = ToneGenerator.TONE_CDMA_PRESSHOLDKEY_LITE
+    // Ключи для сохранения состояния
     private val ticketInfoKey = "ticketInfo"
+    private val ticketsLoadedKey = "ticketsLoaded"
 
     // UI элементы
     private var eventNameTextView: TextView? = null
@@ -38,6 +43,17 @@ class EventDetailsActivity : AppCompatActivity() {
         }
 
     private var lastScannedTicketInfo: String = ""
+
+    /**
+     * Формат даты для получения билетов
+     */
+    @SuppressLint("SimpleDateFormat")
+    private val getTicketDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+    /**
+     * Признак того, что билеты уже были загружены
+     */
+    private var ticketsLoaded: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,35 +74,51 @@ class EventDetailsActivity : AppCompatActivity() {
         if (savedInstanceState != null && savedInstanceState.containsKey(ticketInfoKey))
             ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
 
-        // TODO не запрашивать билеты при перевороте
+        if (savedInstanceState != null && savedInstanceState.containsKey(ticketsLoadedKey))
+            ticketsLoaded = savedInstanceState[ticketsLoadedKey] as Boolean
+
+        if (ticketsLoaded)
+            return
+
         async {
-            val ticketInfo = HttpClient.getTickets(event!!.id.toString())
+            val response = JSONObject(HttpClient.getTickets(event!!.id.toString()))
+            val success = response.getBoolean("success")
+            if (!success)
+                return@async
 
-            var tmp = ticketInfo
+            val data = response.getJSONObject("data")
+            val ticketsInfo = HashSet<TicketInfo>()
+            loop@ for (key in data.keys()) {
+                try {
+                    val obj = data.getJSONObject(key)
+                    if (!obj.has("event_id") || !obj.has("status"))
+                        continue
+                    if (obj.getLong("event_id") != event!!.id)
+                        continue
+
+                    val statusCode = obj.getInt("status")
+                    val ticketState = when (statusCode) {
+                        6 -> TicketStateEnum.Scanned
+                        8 -> TicketStateEnum.Rejected
+                        else -> continue@loop
+                    }
+
+                    var dt: Date?
+                    try {
+                        dt = getTicketDateFormat.parse(obj.getString("status_time"))
+                    } catch (e: Exception) {
+                        dt = null
+                    }
+
+                    ticketsInfo.add(TicketInfo(key.toLong(), dt, ticketState))
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+
+            StorageManager.getInstance(applicationContext).merge(event!!.id, ticketsInfo)
+            ticketsLoaded = true
         }
-
-        // DEBUG
-
-        val param1 = JSONObject()
-        param1.put("id", "61")
-        param1.put("time", "2017-11-25 23:59:59")
-
-        val params = JSONArray()
-        params.put(param1)
-
-        HttpClient.postTickets(applicationContext, "1", params, testFun())
-
-
-        //StorageManager.getInstance(applicationContext).checkAndAddTicketId(123, 456)
-        //StorageManager.getInstance(applicationContext).checkAndAddTicketId(789, 456)
-
-        //processScanResult("123")
-    }
-
-    fun testFun() : (String?) -> Unit {
-        return {response -> run{
-            var tmp = response
-        }}
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
@@ -95,6 +127,7 @@ class EventDetailsActivity : AppCompatActivity() {
         if (outState == null)
             return
         outState.putString(ticketInfoKey, lastScannedTicketInfo)
+        outState.putBoolean(ticketsLoadedKey, ticketsLoaded)
     }
 
     /**
@@ -124,7 +157,7 @@ class EventDetailsActivity : AppCompatActivity() {
         try {
             val scanResult = ScanResultParser.unsafeParse(scanResultAsString, event!!.code, this)
 
-           if (scanResult.eventId != event!!.id)
+            if (scanResult.eventId != event!!.id)
                 throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
 
             StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, scanResult.eventId)//scanResult.eventId)

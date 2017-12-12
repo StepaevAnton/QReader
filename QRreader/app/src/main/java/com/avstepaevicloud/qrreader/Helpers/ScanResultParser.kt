@@ -14,7 +14,6 @@ import java.security.AccessControlContext
 class ScanResultParser {
     companion object {
 
-
         /**
          * Хардкодный префикс результата сканирования
          */

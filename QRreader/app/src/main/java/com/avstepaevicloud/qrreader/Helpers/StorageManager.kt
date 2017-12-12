@@ -28,7 +28,7 @@ class StorageManager private constructor(val context: Context) {
     private val dir: File = context.filesDir
 
     /**
-     * Информация лежит на диске в виде .txt файлов, содержащих строковое представлени информации об отсканированных билетах (json и xml нецелесообразны, ввиду ресурсоемкости добавления информации)
+     * Информация лежит на диске в виде .txt файлов, содержащих строковое представление информации об отсканированных билетах (json и xml нецелесообразны, ввиду ресурсоемкости добавления информации)
      * infosLimiter - разделить между инфо о билетах
      * infoComponentLimiter - разделитель внутри инфо о билете
      */
@@ -85,7 +85,7 @@ class StorageManager private constructor(val context: Context) {
      * Смерджиться с инфой об отсканированных билетах с сервера
      * TODO чересчур кучеряво
      */
-    fun merge(eventId: Long, ticketInfos: Array<TicketInfo>) {
+    fun merge(eventId: Long, ticketInfos: HashSet<TicketInfo>) {
         if (!cache.containsKey(eventId) || cache[eventId] == null)
             cache[eventId] = HashSet<TicketInfo>()
 
@@ -124,7 +124,7 @@ class StorageManager private constructor(val context: Context) {
                 ticketsToPost.add(ticketInfo)
         }
 
-
+        HttpClient.postTickets(context, eventId.toString(), ticketsToPost, {})
     }
 
     /**
@@ -132,26 +132,26 @@ class StorageManager private constructor(val context: Context) {
      */
     fun checkAndAddTicketId(ticketId: Long, eventId: Long) {
         if (!cache.containsKey(eventId))
-            cache[eventId] = HashSet<TicketInfo>()
+            cache[eventId] = HashSet()
 
         val currentCache = cache[eventId]
         val scannedTicket = currentCache!!.firstOrNull { it.id == ticketId }
         if (scannedTicket != null) {
-            var msg = ""
-            when (scannedTicket.state) {
-                TicketStateEnum.Scanned -> msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_already_was_scanned, " "
-                        + SimpleDateFormat.getInstance().format(scannedTicket.scanDt))
-                TicketStateEnum.Rejected -> msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_was_rejected)
+            val msg = when (scannedTicket.state) {
+                TicketStateEnum.Scanned -> context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_already_was_scanned, if (scannedTicket.scanDt != null) " "
+                        + SimpleDateFormat.getInstance().format(scannedTicket.scanDt) else "")
+                TicketStateEnum.Rejected -> context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.ticket_was_rejected)
             //else -> throw NotImplementedError("scannedTicket.state")
             }
 
-            throw TicketIdCheckException(msg)
+            throw TicketIdCheckException(message = msg)
         }
 
         val ticketInfo = TicketInfo(ticketId, Calendar.getInstance().time, TicketStateEnum.Scanned)
-        currentCache.add(ticketInfo)
 
+        currentCache.add(ticketInfo)
         writeChangesToDiscAsync(eventId, ticketInfo)
+        HttpClient.postTickets(context, eventId.toString(), hashSetOf(ticketInfo), {})
     }
 
     /**
@@ -166,7 +166,9 @@ class StorageManager private constructor(val context: Context) {
             if (!file.exists())
                 file = File(dir, eventId.toString() + filesExtension)
 
-            file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + SimpleDateFormat.getInstance().format(ticketInfo.scanDt) + infoComponentLimiter + ticketInfo.state, Charsets.UTF_8)
+            file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + (if (ticketInfo.scanDt != null) {
+                SimpleDateFormat.getInstance().format(ticketInfo.scanDt)
+            } else "") + infoComponentLimiter + ticketInfo.state, Charsets.UTF_8)
         }
     }
 }
@@ -174,7 +176,7 @@ class StorageManager private constructor(val context: Context) {
 /**
  * Дата класс описания билета
  */
-data class TicketInfo(val id: Long, val scanDt: Date, val state: TicketStateEnum)
+data class TicketInfo(val id: Long, val scanDt: Date?, val state: TicketStateEnum)
 
 /**
  * Состояние билета

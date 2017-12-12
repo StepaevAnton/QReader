@@ -7,8 +7,7 @@ import android.support.v7.app.AlertDialog
 import android.view.View
 import android.util.Log
 import android.widget.*
-import com.avstepaevicloud.qrreader.Helpers.HttpClient
-import com.avstepaevicloud.qrreader.Helpers.NetworkManager
+import com.avstepaevicloud.qrreader.Helpers.*
 import kotlinx.coroutines.experimental.async
 import org.json.JSONArray
 import org.json.JSONObject
@@ -80,7 +79,6 @@ class MainActivity : NetworkCkeckingActivity() {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
 
         eventsListView = findViewById(R.id.events_list_view)
         progressBar = findViewById(R.id.progress_bar)
