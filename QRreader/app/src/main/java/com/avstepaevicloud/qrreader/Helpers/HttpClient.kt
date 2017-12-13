@@ -11,7 +11,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.*
 import java.nio.charset.Charset
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 
 /**
@@ -77,8 +76,7 @@ class HttpClient {
                 params.put(param)
             }
 
-            if (ticketInfos.count() == 0)
-                return
+            if (ticketInfos.count() == 0) return
 
             val url = "$POST_TICKET_URL&event=$eventId&pin=$pinCode"
 

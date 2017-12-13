@@ -46,11 +46,9 @@ class StorageManager private constructor(val context: Context) {
      */
     init {
         var success = true
-        if (!dir.exists())
-            success = dir.mkdirs()
+        if (!dir.exists()) success = dir.mkdirs()
 
-        if (!success)
-            throw TicketIdCheckException("Нет доступа к диску на чтение-запись!")
+        if (!success) throw TicketIdCheckException("Нет доступа к диску на чтение-запись!")
 
         val files = dir.listFiles()
 
@@ -64,8 +62,7 @@ class StorageManager private constructor(val context: Context) {
                     val jsonTicketInfo = jsonTicketsInfos[i]
                     val components = jsonTicketInfo.split(infoComponentLimiter)
                     val idComponent = components[0]
-                    if (idComponent.isEmpty())
-                        continue
+                    if (idComponent.isEmpty()) continue
 
                     val id = idComponent.toLong()
                     val dt = SimpleDateFormat.getInstance().parse(components[1])
@@ -86,8 +83,9 @@ class StorageManager private constructor(val context: Context) {
      * TODO чересчур кучеряво
      */
     fun merge(eventId: Long, ticketInfos: HashSet<TicketInfo>) {
-        if (!cache.containsKey(eventId) || cache[eventId] == null)
+        if (!cache.containsKey(eventId) || cache[eventId] == null) {
             cache[eventId] = HashSet<TicketInfo>()
+        }
 
         val currentCache = cache[eventId]
 
@@ -106,22 +104,28 @@ class StorageManager private constructor(val context: Context) {
         for (ticketInfo in tmpCollection) {
             var cached = false
             var received = false
-            if (cachedTicketsIds.contains(ticketInfo.id))
+            if (cachedTicketsIds.contains(ticketInfo.id)){
                 cached = true
-            if (receivedTicketsIds.contains(ticketInfo.id))
+            }
+
+            if (receivedTicketsIds.contains(ticketInfo.id)){
                 received = true
+            }
 
             // Билет и в кэше и прилетел - все ок
-            if (cached && received)
+            if (cached && received){
                 continue
+            }
             // Билет только прилетел - кладем в кэш
             else if (received) {
                 currentCache.add(ticketInfo)
                 writeChangesToDiscAsync(eventId, ticketInfo)
             }
             // Билет только в кэше - постим на сервер
-            else if (cached)
+            else if (cached){
                 ticketsToPost.add(ticketInfo)
+
+            }
         }
 
         HttpClient.postTickets(context, eventId.toString(), ticketsToPost, {})
@@ -131,8 +135,9 @@ class StorageManager private constructor(val context: Context) {
      * Проверить был ли отсканирован этот билет
      */
     fun checkAndAddTicketId(ticketId: Long, eventId: Long) {
-        if (!cache.containsKey(eventId))
+        if (!cache.containsKey(eventId)){
             cache[eventId] = HashSet()
+        }
 
         val currentCache = cache[eventId]
         val scannedTicket = currentCache!!.firstOrNull { it.id == ticketId }
@@ -155,16 +160,18 @@ class StorageManager private constructor(val context: Context) {
     }
 
     /**
-     * Записать изменения на диск
+     * Записать изменения на диск асинхронно
      */
     private fun writeChangesToDiscAsync(eventId: Long, ticketInfo: TicketInfo) {
         async {
-            if (!dir.exists())
+            if (!dir.exists()){
                 dir.mkdirs()
+            }
 
             var file = File(dir.absolutePath + "/" + eventId.toString() + filesExtension)
-            if (!file.exists())
+            if (!file.exists()){
                 file = File(dir, eventId.toString() + filesExtension)
+            }
 
             file.appendText(infosLimiter + ticketInfo.id + infoComponentLimiter + (if (ticketInfo.scanDt != null) {
                 SimpleDateFormat.getInstance().format(ticketInfo.scanDt)

@@ -84,20 +84,18 @@ class MainActivity : NetworkCkeckingActivity() {
         progressBar = findViewById(R.id.progress_bar)
         progressBar!!.visibility = View.INVISIBLE
 
-        if (savedInstanceState != null && savedInstanceState.containsKey("events"))
+        if (savedInstanceState != null && savedInstanceState.containsKey("events")) {
             events = savedInstanceState.getSerializable("events") as Array<EventData>
+        }
 
-        if (events.any())
-            showEventsList()
-        else
-            isNetworkConnected()
+        if (events.any()) showEventsList() else isNetworkConnected()
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
 
-        if (outState == null)
-            return
+        if (outState == null) return
+
         outState.putSerializable("events", events)
     }
 
@@ -143,8 +141,9 @@ class MainActivity : NetworkCkeckingActivity() {
             val jsonObject = JSONObject(eventsList)
             val isAnswerCorrect = isAnswerCorrect(jsonObject)
             runOnUiThread {
-                if (isAnswerCorrect)
+                if (isAnswerCorrect){
                     parseAndShowEvents(jsonObject.getJSONArray("data"))
+                }
                 else {
                     // TODO в ресурсы
                     Toast.makeText(this@MainActivity, R.string.incorrect_pin_code, Toast.LENGTH_LONG).show()
@@ -165,14 +164,11 @@ class MainActivity : NetworkCkeckingActivity() {
         for (i in 0 until eventsJson.length()) {
             try {
                 val obj = eventsJson.getJSONObject(i)
-                if (!obj.has("id") || !obj.has("title") || !obj.has("code") or (obj.has("hidden") && obj.getInt("hidden") != 0))
-                    continue
+                if (!obj.has("id") || !obj.has("title") || !obj.has("code") or (obj.has("hidden") && obj.getInt("hidden") != 0)) continue
 
                 val dtStrings = mutableListOf<String>()
-                if (obj.has("date"))
-                    dtStrings.add(obj.getString("date"))
-                if (obj.has("time"))
-                    dtStrings.add(obj.getString("time"))
+                if (obj.has("date")) dtStrings.add(obj.getString("date"))
+                if (obj.has("time")) dtStrings.add(obj.getString("time"))
 
                 val eventTypes = mutableMapOf<Int, TicketType>()
                 if (obj.has("types")) {
@@ -237,8 +233,8 @@ class MainActivity : NetworkCkeckingActivity() {
      * Отобразить активити детализации по событию
      */
     private fun performSegueEventDetailsActivity(position: Int) {
-        if (events.lastIndex < position)
-            return
+        if (events.lastIndex < position) return
+
         val event = events[position]
 
         val intent = Intent(this, EventDetailsActivity::class.java)
@@ -252,11 +248,9 @@ class MainActivity : NetworkCkeckingActivity() {
     private fun isAnswerCorrect(obj: JSONObject): Boolean {
         try {
             val success = obj.getBoolean("success")
-            if (!success)
-                return false
+            if (!success) return false
             val data = obj.getJSONArray("data")
-            if ((data == null) or (data.length() == 0))
-                return false
+            if ((data == null) or (data.length() == 0)) return false
             val firstObj = data[0] as JSONObject
 
             return firstObj.has("code")

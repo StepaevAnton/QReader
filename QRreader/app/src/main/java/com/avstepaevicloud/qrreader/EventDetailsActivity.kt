@@ -34,8 +34,7 @@ class EventDetailsActivity : AppCompatActivity() {
 
     private var event: EventData? = null
         set(value) {
-            if (value == null)
-                return
+            if (value == null) return
 
             eventNameTextView!!.text = value.title
             eventDtTextView!!.text = value.dt
@@ -68,33 +67,31 @@ class EventDetailsActivity : AppCompatActivity() {
 
         event = intent.getSerializableExtra("event") as EventData
 
-        if (event == null)
-            finish()
+        if (event == null) finish()
 
         if (savedInstanceState != null && savedInstanceState.containsKey(ticketInfoKey))
             ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
 
         if (savedInstanceState != null && savedInstanceState.containsKey(ticketsLoadedKey))
+        {
             ticketsLoaded = savedInstanceState[ticketsLoadedKey] as Boolean
+        }
 
-        if (ticketsLoaded)
-            return
+        if (ticketsLoaded) return
 
         async {
             val response = JSONObject(HttpClient.getTickets(event!!.id.toString()))
+
             val success = response.getBoolean("success")
-            if (!success)
-                return@async
+            if (!success) return@async
 
             val data = response.getJSONObject("data")
             val ticketsInfo = HashSet<TicketInfo>()
             loop@ for (key in data.keys()) {
                 try {
                     val obj = data.getJSONObject(key)
-                    if (!obj.has("event_id") || !obj.has("status"))
-                        continue
-                    if (obj.getLong("event_id") != event!!.id)
-                        continue
+                    if (!obj.has("event_id") || !obj.has("status")) continue
+                    if (obj.getLong("event_id") != event!!.id) continue
 
                     val statusCode = obj.getInt("status")
                     val ticketState = when (statusCode) {
@@ -124,8 +121,8 @@ class EventDetailsActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle?) {
         super.onSaveInstanceState(outState)
 
-        if (outState == null)
-            return
+        if (outState == null) return
+
         outState.putString(ticketInfoKey, lastScannedTicketInfo)
         outState.putBoolean(ticketsLoadedKey, ticketsLoaded)
     }
@@ -144,8 +141,7 @@ class EventDetailsActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
         val barcode = data?.extras?.getString("BarCode")
-        if (barcode.isNullOrEmpty())
-            return
+        if (barcode.isNullOrEmpty()) return
 
         processScanResult(barcode!!)
     }
@@ -157,16 +153,18 @@ class EventDetailsActivity : AppCompatActivity() {
         try {
             val scanResult = ScanResultParser.unsafeParse(scanResultAsString, event!!.code, this)
 
-            if (scanResult.eventId != event!!.id)
-                throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
+            // Идентификатор выбранного мероприятия и билета не совпадают
+            if (scanResult.eventId != event!!.id) throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
 
-            StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, scanResult.eventId)//scanResult.eventId)
+            StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, scanResult.eventId)
 
             val ticketType = getTicketTypyAsString(scanResult.ticketType)
 
+            // TODO строки в ресурсы
             var addInfo = ""
-            if (scanResult.ticketType == 0)
+            if (scanResult.ticketType == 0) {
                 addInfo = "\r\nРяд: ${scanResult.row}\r\nМесто: ${scanResult.seat}"
+            }
 
             val ticketInfo = "№ ${scanResult.ticketId}\r\nТип: $ticketType$addInfo"
 
@@ -182,8 +180,9 @@ class EventDetailsActivity : AppCompatActivity() {
         } catch (e: Exception) {
             var errorMsg = applicationContext.getString(R.string.qr_code_has_invalid_format)
 
-            if (e is ResultParsingException || e is TicketIdCheckException)
+            if (e is ResultParsingException || e is TicketIdCheckException){
                 errorMsg = e.message
+            }
 
             AlertDialog.Builder(this).setMessage(errorMsg).setTitle(R.string.error)
                     .setPositiveButton(android.R.string.ok) { _, _ -> }.setIcon(android.R.drawable.ic_dialog_alert).show()
