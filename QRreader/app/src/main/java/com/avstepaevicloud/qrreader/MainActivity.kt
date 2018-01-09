@@ -3,6 +3,7 @@ package com.avstepaevicloud.qrreader
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.content.Intent
+import android.support.v4.widget.SwipeRefreshLayout
 import android.support.v7.app.AlertDialog
 import android.view.View
 import android.util.Log
@@ -62,13 +63,17 @@ class MainActivity : NetworkCkeckingActivity() {
     /**
      * Прогресс бар
      */
-    var progressBar: ProgressBar? = null
+    //var progressBar: ProgressBar? = null
 
     /**
      * Лист-вью событий
      */
     var eventsListView: ListView? = null
 
+    /**
+     * Лэйаут с обновлением при свайпе
+     */
+    var swipeRefreshLayout: SwipeRefreshLayout? = null
 
     /**
      * Список событий
@@ -81,8 +86,14 @@ class MainActivity : NetworkCkeckingActivity() {
         setContentView(R.layout.activity_main)
 
         eventsListView = findViewById(R.id.events_list_view)
-        progressBar = findViewById(R.id.progress_bar)
-        progressBar!!.visibility = View.INVISIBLE
+        swipeRefreshLayout = findViewById(R.id.swipeRefresh)
+        swipeRefreshLayout!!.setOnRefreshListener{
+            loadEventsAsync()
+        }
+
+//        progressBar = findViewById(R.id.progress_bar)
+//        progressBar!!.visibility = View.INVISIBLE
+        swipeRefreshLayout!!.isRefreshing = false
 
         if (savedInstanceState != null && savedInstanceState.containsKey("events")) {
             events = savedInstanceState.getSerializable("events") as Array<EventData>
@@ -134,12 +145,21 @@ class MainActivity : NetworkCkeckingActivity() {
 
         val pinCode = dialogView.findViewById<EditText>(R.id.pin_code).text.toString()
         HttpClient.pinCode = pinCode
-        progressBar!!.visibility = View.VISIBLE
+        //progressBar!!.visibility = View.VISIBLE
+        swipeRefreshLayout!!.isRefreshing = true
 
+        loadEventsAsync()
+    }
+
+    /**
+     * Загрузить события асинхронно
+     */
+    private fun loadEventsAsync(){
         async {
             val eventsList = HttpClient.getEventsList()
             val jsonObject = JSONObject(eventsList)
             val isAnswerCorrect = isAnswerCorrect(jsonObject)
+
             runOnUiThread {
                 if (isAnswerCorrect){
                     parseAndShowEvents(jsonObject.getJSONArray("data"))
@@ -149,7 +169,9 @@ class MainActivity : NetworkCkeckingActivity() {
                     Toast.makeText(this@MainActivity, R.string.incorrect_pin_code, Toast.LENGTH_LONG).show()
                     showPinCodeDialog()
                 }
-                progressBar!!.visibility = View.INVISIBLE
+                //progressBar!!.visibility = View.INVISIBLE
+
+                swipeRefreshLayout!!.isRefreshing = false
             }
         }
     }

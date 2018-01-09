@@ -1,10 +1,7 @@
 package com.avstepaevicloud.qrreader.Helpers
 
 import android.content.Context
-import com.android.volley.NetworkResponse
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.Response
+import com.android.volley.*
 import com.android.volley.toolbox.JsonRequest
 import com.android.volley.toolbox.Volley
 import org.json.JSONArray
@@ -82,16 +79,30 @@ class HttpClient {
 
             val jsonObjReq = object : JsonRequest<String>(Method.POST, url, params.toString(),
                     Response.Listener<String> { response ->
-                        completionHandler(response)
+                        //completionHandler(response)
                     },
                     Response.ErrorListener { _ ->
-                        completionHandler(null)
+                        //completionHandler(null)
                     }) {
 
                 override fun parseNetworkResponse(response: NetworkResponse?): Response<String> {
-                    val tmp = response?.data?.toString(Charset.defaultCharset())
+                    var responseData: String? = ""
+                    try {
+                        responseData = response?.data?.toString(Charset.defaultCharset())
+                        val success = JSONObject(responseData).getBoolean("success")
 
-                    return Response.success(tmp, null)
+                        if (success){
+                            // В текущей реализации вызов необходим только при success
+                            completionHandler(responseData)
+                            return Response.success(responseData, null)
+                        }
+
+                        return Response.error<String>(VolleyError())
+                    }
+                    catch (e: Exception)
+                    {
+                        return Response.error<String>(VolleyError())
+                    }
                 }
             }
 

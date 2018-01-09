@@ -20,7 +20,10 @@ class ScanResultParser {
         /**
          * Распарсить результат сканирования небезопасным образом
          */
-        fun unsafeParse(base64StringWithIpPrefix: String, code: String, context: Context): ScanResult {
+        fun unsafeParse(base64StringWithIpPrefix: String, code: String, context: Context): ParseResult {
+            var success = true
+            var msg = ""
+
             val base64String = base64StringWithIpPrefix.replace(PREFIX, "")
             val bytes = Base64.decode(base64String, 8)
 
@@ -35,7 +38,11 @@ class ScanResultParser {
 
             val md5Hash = md5Digest.digest().slice(0 until sign.count()).toByteArray()
 
-            if (!Arrays.equals(md5Hash, sign)) throw ResultParsingException(context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.digital_signature_is_not_valid))
+            if (!Arrays.equals(md5Hash, sign)) {
+                //throw ResultParsingException(context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.digital_signature_is_not_valid))
+                success = false
+                msg = context.applicationContext.getString(com.avstepaevicloud.qrreader.R.string.digital_signature_is_not_valid)
+            }
 
             val ticketId = ByteBuffer.wrap(data.slice(0..3).toByteArray().reversedArray()).getInt().toULong()
             val eventId = ByteBuffer.wrap(data.slice(4..7).toByteArray().reversedArray()).getInt().toULong()
@@ -43,7 +50,7 @@ class ScanResultParser {
             val row = data.get(9).toUInt()
             val seat = data.get(10).toUInt()
 
-            return ScanResult(ticketId, eventId, ticketType, row, seat)
+            return ParseResult(ScanResult(ticketId, eventId, ticketType, row, seat), success, msg)
         }
 
         // TODO вынести в Extensions
@@ -52,6 +59,8 @@ class ScanResultParser {
         fun Int.toULong() = this.toLong() and 0xff_ff_ff_ff
     }
 }
+
+class ParseResult(var scanResult: ScanResult, var success: Boolean, var msg: String)
 
 /**
  * Исключение разбора результата сканирования

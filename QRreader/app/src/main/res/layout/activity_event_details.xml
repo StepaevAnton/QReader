@@ -4,50 +4,106 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingStart="10dp"
-    android:paddingLeft="10dp"
-    android:paddingEnd="10dp"
-    android:paddingRight="10dp"
-    android:paddingBottom="10dp"
     android:background="#e5e5e5"
+    android:paddingBottom="10dp"
+    android:paddingEnd="10dp"
+    android:paddingLeft="10dp"
+    android:paddingRight="10dp"
+    android:paddingStart="10dp"
     tools:context="com.avstepaevicloud.qrreader.EventDetailsActivity">
+
     <TextView
         android:id="@+id/event_label"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="25sp"
+        android:ellipsize="end"
         android:gravity="start"
-        android:textColor="#202020"
         android:maxLines="2"
-        android:ellipsize="end"/>
+        android:textColor="#202020"
+        android:textSize="22sp" />
 
     <TextView
         android:id="@+id/event_dt"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="15sp"
+        android:layout_below="@id/event_label"
         android:gravity="start"
-        android:layout_below="@id/event_label"/>
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/ticket_details"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="20sp"
-        android:gravity="start"
         android:layout_below="@id/event_dt"
+        android:layout_marginTop="40dp"
+        android:gravity="start"
         android:textColor="#303030"
-        android:layout_marginTop="40dp"/>
+        android:textSize="19sp" />
 
-    <Button
-        android:id="@+id/scan_code_button"
-        android:layout_width="230dp"
-        android:layout_height="70dp"
-        android:text="@string/scan_code"
-        android:textSize="20sp"
-        android:textColor="@android:color/black"
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:background="@drawable/rounded_corners_button"/>
+        android:orientation="horizontal"
+        android:paddingBottom="1.0dip"
+        android:paddingLeft="4.0dip"
+        android:paddingRight="4.0dip"
+        android:paddingTop="5.0dip"
+        android:gravity="center">
+
+    <Button
+        android:layout_height="70dp"
+        android:layout_width="match_parent"
+        android:maxWidth="230dp"
+        android:id="@+id/sync_button"
+        android:layout_marginRight="10dp"
+
+        android:background="@drawable/rounded_corners_button"
+        android:text="@string/sync"
+        android:textColor="@android:color/black"
+        android:textSize="20sp"
+        android:layout_weight="1"/>
+
+
+    <Button
+        android:layout_height="70dp"
+        android:layout_width="match_parent"
+        android:maxWidth="230dp"
+        android:layout_weight="1"
+        android:layout_marginLeft="10dp"
+
+        android:id="@+id/scan_code_button"
+
+        android:background="@drawable/rounded_corners_button"
+        android:text="@string/scan_code"
+        android:textColor="@android:color/black"
+        android:textSize="20sp" />
+
+
+    </LinearLayout>
+
+
+    <!--<Button-->
+    <!--android:id="@+id/sync_button"-->
+    <!--android:layout_width="230dp"-->
+    <!--android:layout_height="70dp"-->
+    <!--android:text="@string/sync"-->
+    <!--android:textSize="20sp"-->
+    <!--android:textColor="@android:color/black"-->
+    <!--android:layout_alignLeft="@+id/scan_code_button"-->
+    <!--android:layout_centerHorizontal="true"-->
+    <!--android:background="@drawable/rounded_corners_button"/>-->
+
+    <!--<Button-->
+    <!--android:id="@+id/scan_code_button"-->
+    <!--android:layout_width="230dp"-->
+    <!--android:layout_height="70dp"-->
+    <!--android:text="@string/scan_code"-->
+    <!--android:textSize="20sp"-->
+    <!--android:textColor="@android:color/black"-->
+    <!--android:layout_alignParentBottom="true"-->
+    <!--android:layout_centerHorizontal="true"-->
+    <!--android:background="@drawable/rounded_corners_button"/>-->
 
 </RelativeLayout>

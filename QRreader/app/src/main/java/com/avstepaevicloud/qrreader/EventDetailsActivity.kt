@@ -1,6 +1,7 @@
 package com.avstepaevicloud.qrreader
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
@@ -13,7 +14,7 @@ import com.avstepaevicloud.qrreader.Helpers.*
 import kotlinx.coroutines.experimental.async
 import org.json.JSONObject
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.*
 
 
 class EventDetailsActivity : AppCompatActivity() {
@@ -25,19 +26,21 @@ class EventDetailsActivity : AppCompatActivity() {
     // Ключи для сохранения состояния
     private val ticketInfoKey = "ticketInfo"
     private val ticketsLoadedKey = "ticketsLoaded"
+    private val eventDtTextKey = "eventAndSyncDtText"
 
     // UI элементы
     private var eventNameTextView: TextView? = null
     private var eventDtTextView: TextView? = null
     private var ticketDetailsTextView: TextView? = null
     private var scanCodeButton: Button? = null
+    private var syncButton: Button? = null
 
     private var event: EventData? = null
         set(value) {
             if (value == null) return
 
             eventNameTextView!!.text = value.title
-            eventDtTextView!!.text = value.dt
+//            eventDtTextView!!.text = value.dt
             field = value
         }
 
@@ -61,25 +64,55 @@ class EventDetailsActivity : AppCompatActivity() {
         eventNameTextView = findViewById(R.id.event_label)
         eventDtTextView = findViewById(R.id.event_dt)
         scanCodeButton = findViewById(R.id.scan_code_button)
+        syncButton = findViewById(R.id.sync_button)
         ticketDetailsTextView = findViewById(R.id.ticket_details)
 
         scanCodeButton!!.setOnClickListener { startCodeScanning() }
+        syncButton!!.setOnClickListener { syncWithServerAsync(true, this) }
 
         event = intent.getSerializableExtra("event") as EventData
 
+
         if (event == null) finish()
 
-        if (savedInstanceState != null && savedInstanceState.containsKey(ticketInfoKey))
-            ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
+        eventDtTextView!!.text = event!!.dt
 
-        if (savedInstanceState != null && savedInstanceState.containsKey(ticketsLoadedKey))
-        {
-            ticketsLoaded = savedInstanceState[ticketsLoadedKey] as Boolean
+        if (savedInstanceState != null) {
+            if (savedInstanceState.containsKey(ticketInfoKey)){
+                ticketDetailsTextView!!.text = savedInstanceState[ticketInfoKey] as String
+            }
+
+            if (savedInstanceState.containsKey(ticketsLoadedKey)) {
+                ticketsLoaded = savedInstanceState[ticketsLoadedKey] as Boolean
+            }
+
+            if (savedInstanceState.containsKey(eventDtTextKey)){
+                eventDtTextView!!.text = savedInstanceState[eventDtTextKey] as String
+            }
         }
 
         if (ticketsLoaded) return
 
+        syncWithServerAsync(false, this)
+    }
+
+    /**
+     * Синхронизироваться с сервером асинхронно
+     */
+    private fun syncWithServerAsync(checkConnection: Boolean, context: Context){
         async {
+            if (checkConnection && !NetworkManager.isNetworkConnected())
+            {
+                runOnUiThread{
+                    AlertDialog.Builder(context).setTitle("Подключение к интернету отсутствует!")
+                            .setMessage("Проверьте подключение к интернету и попробуйте позже.")
+                            .setPositiveButton(android.R.string.ok) { _, _ -> }
+                            .setIcon(android.R.drawable.ic_dialog_alert).show()
+                }
+
+                return@async
+            }
+
             val response = JSONObject(HttpClient.getTickets(event!!.id.toString()))
 
             val success = response.getBoolean("success")
@@ -114,8 +147,26 @@ class EventDetailsActivity : AppCompatActivity() {
             }
 
             StorageManager.getInstance(applicationContext).merge(event!!.id, ticketsInfo)
+
             ticketsLoaded = true
+            runOnUiThread{
+                updateEventDtAndSyncText()
+                if (checkConnection)
+                {
+                    AlertDialog.Builder(context).setMessage("Синхронизация выполнена успешно!")
+                            .setPositiveButton(android.R.string.ok) { _, _ -> }
+                            .setIcon(android.R.drawable.ic_dialog_info).show()
+                }
+            }
+            //eventDtTextView!!.text = eventDtTextView!!.text + ", "
         }
+    }
+
+    /**
+     * Проапдейтить текст о последней синхронизации
+     */
+    private fun updateEventDtAndSyncText(){
+        eventDtTextView!!.text = event!!.dt + ", синхронизация выполнялась в " + SimpleDateFormat.getTimeInstance().format(Calendar.getInstance().time)
     }
 
     override fun onSaveInstanceState(outState: Bundle?) {
@@ -125,6 +176,7 @@ class EventDetailsActivity : AppCompatActivity() {
 
         outState.putString(ticketInfoKey, lastScannedTicketInfo)
         outState.putBoolean(ticketsLoadedKey, ticketsLoaded)
+        outState.putString(eventDtTextKey, eventDtTextView!!.text.toString())
     }
 
     /**
@@ -154,33 +206,53 @@ class EventDetailsActivity : AppCompatActivity() {
             val scanResult = ScanResultParser.unsafeParse(scanResultAsString, event!!.code, this)
 
             // Идентификатор выбранного мероприятия и билета не совпадают
-            if (scanResult.eventId != event!!.id) throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
+            if (scanResult.scanResult.eventId != event!!.id && scanResult.success) {
+                //throw TicketIdCheckException(applicationContext.getString(R.string.wrong_event_id_on_ticket))
+                scanResult.success = false
+                scanResult.msg = applicationContext.getString(R.string.wrong_event_id_on_ticket)
+            }
 
-            StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.ticketId, scanResult.eventId)
+            if (scanResult.success) {
+                try {
+                    StorageManager.getInstance(applicationContext).checkAndAddTicketId(scanResult.scanResult.ticketId, scanResult.scanResult.eventId, getHandlePostTicketsCompletions())
+                } catch (e: TicketIdCheckException) {
+                    if (scanResult.success) {
+                        scanResult.success = false
+                        scanResult.msg = e.message ?: "Произошла неожиданная ошибка!"
+                    }
+                }
+            }
 
-            val ticketType = getTicketTypyAsString(scanResult.ticketType)
+            val ticketType = getTicketTypyAsString(scanResult.scanResult.ticketType)
 
             // TODO строки в ресурсы
             var addInfo = ""
-            if (scanResult.ticketType == 0) {
-                addInfo = "\r\nРяд: ${scanResult.row}\r\nМесто: ${scanResult.seat}"
+            if (scanResult.scanResult.ticketType == 0) {
+                addInfo = "\r\nРяд: ${scanResult.scanResult.row}\r\nМесто: ${scanResult.scanResult.seat}"
             }
 
-            val ticketInfo = "№ ${scanResult.ticketId}\r\nТип: $ticketType$addInfo"
+            val ticketInfo = "№ ${scanResult.scanResult.ticketId}\r\nТип: $ticketType$addInfo"
 
             lastScannedTicketInfo = "Последний отсканированный билет:\r\n\r\n$ticketInfo"
+
+            if (!scanResult.success) {
+                lastScannedTicketInfo = lastScannedTicketInfo + "\r\nОшибка: ${scanResult.msg}"
+                ticketDetailsTextView!!.text = lastScannedTicketInfo
+
+                throw ResultParsingException(scanResult.msg)
+            }
+
+            ticketDetailsTextView!!.text = lastScannedTicketInfo
 
             playSound(okTone)
 
             AlertDialog.Builder(this).setMessage("Билет " + ticketInfo)
                     .setPositiveButton(android.R.string.ok) { _, _ -> }.setIcon(android.R.drawable.ic_dialog_info).show()
 
-            ticketDetailsTextView!!.text = lastScannedTicketInfo
-
         } catch (e: Exception) {
             var errorMsg = applicationContext.getString(R.string.qr_code_has_invalid_format)
 
-            if (e is ResultParsingException || e is TicketIdCheckException){
+            if (e is ResultParsingException || e is TicketIdCheckException) {
                 errorMsg = e.message
             }
 
@@ -188,6 +260,18 @@ class EventDetailsActivity : AppCompatActivity() {
                     .setPositiveButton(android.R.string.ok) { _, _ -> }.setIcon(android.R.drawable.ic_dialog_alert).show()
 
             playSound(errorTone)
+        }
+    }
+
+    /**
+     * Обновить информацию о синхронизации
+     * В текущей реализации вызывается только при success
+     */
+    private fun getHandlePostTicketsCompletions(): (response: String?) -> Unit {
+        return { response: String? ->
+            runOnUiThread {
+                updateEventDtAndSyncText()
+            }
         }
     }
 

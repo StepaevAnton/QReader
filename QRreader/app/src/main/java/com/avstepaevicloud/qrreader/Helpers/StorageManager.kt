@@ -134,7 +134,7 @@ class StorageManager private constructor(val context: Context) {
     /**
      * Проверить был ли отсканирован этот билет
      */
-    fun checkAndAddTicketId(ticketId: Long, eventId: Long) {
+    fun checkAndAddTicketId(ticketId: Long, eventId: Long, completionHandler: (response: String?) -> Unit) {
         if (!cache.containsKey(eventId)){
             cache[eventId] = HashSet()
         }
@@ -156,7 +156,7 @@ class StorageManager private constructor(val context: Context) {
 
         currentCache.add(ticketInfo)
         writeChangesToDiscAsync(eventId, ticketInfo)
-        HttpClient.postTickets(context, eventId.toString(), hashSetOf(ticketInfo), {})
+        HttpClient.postTickets(context, eventId.toString(), hashSetOf(ticketInfo), completionHandler)
     }
 
     /**
